@@ -3,6 +3,9 @@
 # Updated Makefile with modern compiler flags and C++17 support
 #---------------------------------------------------------------------------------
 
+# GLES renderer objects (from OnscripterYuri)
+GLES_OBJS = gles_renderer.o
+
 GUI_OBJS = ONScripter.o \
 	ONScripter_animation.o \
 	ONScripter_command.o \
@@ -46,6 +49,7 @@ ONSCRIPTER_OBJS = \
 	ScriptParser.o \
 	ScriptParser_command.o \
 	$(GUI_OBJS) \
+	$(GLES_OBJS) \
 
 #---------------------------------------------------------------------------------
 .SUFFIXES:
@@ -89,7 +93,7 @@ APP_VERSION	:=	${VERSION_MAJOR}.${VERSION_MINOR}.${VERSION_MICRO}
 
 TARGET		:=	ONScripter
 BUILD		:=	build
-SOURCES		:=	source source/builtin_dll source/player source/reader source/onscripter
+SOURCES		:=	source source/builtin_dll source/player source/reader source/onscripter source/renderer
 DATA		:=	data
 INCLUDES	:=	include SDL_kitchensink/Output/include
 EXEFS_SRC	:=	exefs_src
@@ -119,6 +123,8 @@ CFLAGS	+= -DUSE_SDL_RENDERER -DNDEBUG -DUSE_OGG_VORBIS -DUSE_LUA
 CFLAGS	+= -DUSE_SIMD_ARM_NEON -DUSE_SIMD
 CFLAGS	+= -DUSE_BUILTIN_EFFECTSX -DUSE_BUILTIN_LAYER_EFFECTSX
 CFLAGS	+= -DUSE_PARALLEL -DENABLE_1BYTE_CHAR
+# GLES renderer for CAS sharpening (from OnscripterYuri)
+CFLAGS	+= -DUSE_GLES
 
 # C++17 standard with modern features
 CXXFLAGS	:= $(CFLAGS) -std=gnu++17 \

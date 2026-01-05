@@ -32,8 +32,12 @@
 #ifdef USE_SIMD
 #include "simd/simd.h"
 #endif
+#ifdef USE_GLES
+#include "../renderer/gles_renderer.h"
+#endif
 #include <stdlib.h>
 #include <unistd.h>
+#include <cmath>
 #ifdef SWITCH
 #include "main.h"
 #endif
@@ -94,6 +98,15 @@ void ONScripter::calcRenderRect()
 					 render_view_rect.y,
 					 render_view_rect.w,
 					 render_view_rect.h);
+
+#if defined(USE_GLES)
+	// Update GLES renderer constants when render rect changes (from OnscripterYuri)
+	if (gles_renderer && !std::isnan(sharpness)) {
+		float input_size[2] = {(float)screen_width, (float)screen_height};
+		float output_size[2] = {(float)render_view_rect.w, (float)render_view_rect.h};
+		gles_renderer->setConstBuffer(input_size, output_size, sharpness);
+	}
+#endif
 }
 
 void ONScripter::setCaption(const char *title, const char *iconstr)
@@ -303,7 +316,10 @@ ONScripter::ONScripter()
 	video_off = false;
 	force_window_width = 0;
 	force_window_height = 0;
-	sharpness = 0.0f;
+	sharpness = NAN;  // Use NAN to indicate sharpness not set (from OnscripterYuri)
+#if defined(USE_GLES)
+	gles_renderer = NULL;
+#endif
 	sprite_info = new AnimationInfo[MAX_SPRITE_NUM];
 	sprite2_info = new AnimationInfo[MAX_SPRITE2_NUM];
 	texture_info = new AnimationInfo[MAX_TEXTURE_NUM];
@@ -401,6 +417,9 @@ void ONScripter::setWindowHeight(int height)
 
 void ONScripter::setSharpness(float value)
 {
+	// Clamp sharpness to valid range 0.0 - 1.0 (from OnscripterYuri)
+	if (value < 0.0f) value = 0.0f;
+	if (value > 1.0f) value = 1.0f;
 	sharpness = value;
 }
 
@@ -523,6 +542,16 @@ int ONScripter::init()
 	screenshot_h = screen_height;
 
 	texture = SDL_CreateTexture(renderer, texture_format, SDL_TEXTUREACCESS_STREAMING, accumulation_surface->w, accumulation_surface->h);
+
+#if defined(USE_GLES)
+	// Initialize GLES renderer for CAS sharpening if sharpness is set (from OnscripterYuri)
+	if (!std::isnan(sharpness)) {
+		float input_size[2] = {(float)screen_width, (float)screen_height};
+		float output_size[2] = {(float)render_view_rect.w, (float)render_view_rect.h};
+		gles_renderer = new GlesRenderer(window, texture, input_size, output_size, sharpness);
+		utils::printInfo("GLES renderer initialized with sharpness=%.2f\n", sharpness);
+	}
+#endif
 
 	effect_tmp = 0;
 	tmp_image_buf = NULL;
@@ -872,21 +901,22 @@ void ONScripter::flushDirect(SDL_Rect &rect, int refresh_mode)
 		SDL_RenderClear(renderer);
 	}
 #if defined(SWITCH)
+	// Use GLES renderer for CAS sharpening if enabled (from OnscripterYuri)
+#if defined(USE_GLES)
+	if (std::isnan(sharpness)) {
+		// No sharpness - use standard SDL rendering
+		SDL_RenderCopy(renderer, texture, NULL, &dst_rect);
+	} else {
+		// Use GLES CAS sharpening renderer
+		if (gles_renderer) {
+			gles_renderer->copy(render_view_rect.x, render_view_rect.y);
+		} else {
+			SDL_RenderCopy(renderer, texture, NULL, &dst_rect);
+		}
+	}
+#else
 	SDL_RenderCopy(renderer, texture, NULL, &dst_rect);
-	/*if (draw_mouse_flag && current_button_link)
-	{
-		SDL_SetRenderDrawColor(renderer, 255, 0, 0, 0);
-		SDL_Rect temp_rect = current_button_link->select_rect;
-		temp_rect.x = temp_rect.x * (float)render_view_rect.w / screen_width;
-		temp_rect.y = temp_rect.y * (float)render_view_rect.h / screen_height;
-		temp_rect.x += render_view_rect.x;
-		temp_rect.y += render_view_rect.y;
-
-		temp_rect.w = temp_rect.w * (float)render_view_rect.w / screen_width;
-		temp_rect.h = temp_rect.h * (float)render_view_rect.h / screen_height;
-		SDL_RenderDrawRect(renderer, &temp_rect);
-		SDL_SetRenderDrawColor(renderer, 0, 0, 0, 0);
-	}*/
+#endif // USE_GLES
 
 #else
 	SDL_RenderCopy(renderer, texture, NULL, NULL);

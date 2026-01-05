@@ -34,6 +34,12 @@
 #include <SDL_mixer.h>
 
 #include "direct_draw.h"
+
+// GLES renderer forward declaration
+#if defined(USE_GLES)
+class GlesRenderer;
+#endif
+
 #if defined(SWITCH)
 #include <switch.h>
 #include "main.h"
@@ -621,6 +627,14 @@ private:
 	SDL_mutex *mutex;//������
 	SDL_cond *cond;//������
 
+    // Render view rect for proper scaling (from OnscripterYuri)
+    SDL_Rect render_view_rect;
+
+#if defined(USE_GLES)
+    // GLES renderer for CAS sharpening (from OnscripterYuri)
+    GlesRenderer *gles_renderer;
+#endif
+
 
     void setCaption(const char *title, const char *iconstr = NULL);
     void setScreenDirty(bool screen_dirty);
@@ -640,6 +654,10 @@ private:
     int max_texture_width, max_texture_height;
     SDL_Texture *blt_texture;
     SDL_Rect blt_texture_src_rect;
+
+    // Screen dimensions for GLES rendering
+    int screen_device_width, screen_device_height;
+    int device_width, device_height;
 
     unsigned char *tmp_image_buf;
     unsigned long tmp_image_buf_length;
