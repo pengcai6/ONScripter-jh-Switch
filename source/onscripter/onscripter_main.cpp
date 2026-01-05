@@ -4,7 +4,8 @@
  *
  *  Copyright (c) 2001-2018 Ogapee. All rights reserved.
  *            (C) 2014-2019 jh10001 <jh10001@live.cn>
- *            (C) 2019-2025 wetor <makisehoshimi@163.com>
+ *            (C) 2022-2023 yurisizuku <https://github.com/YuriSizuku>
+ *            (C) 2019-2025 ONScripter-jh-Switch contributors
  *
  *  ogapee@aqua.dti2.ne.jp
  *
@@ -37,7 +38,7 @@
 // Global ONScripter instance
 ONScripter ons;
 
-// Character encoding converter (GBK or SJIS to UTF-16)
+// Character encoding converter (GBK, SJIS, or UTF-8 to UTF-16)
 Coding2UTF16 *coding2utf16 = nullptr;
 
 namespace {
@@ -50,27 +51,39 @@ void showHelp()
     printf("ONScripter-jh for Nintendo Switch\n");
     printf("Version: %s (JH: %s, ONS: %s)\n\n", ONS_NX_VERSION, ONS_JH_VERSION, ONS_VERSION);
     printf("Usage: onscripter [option ...]\n\n");
-    printf("Options:\n");
+
+    printf(" Load options:\n");
+    printf("  -f, --font <file>              set a TTF font file\n");
+    printf("  -r, --root <path>              set the root path to the archives\n");
+    printf("      --save-dir <path>          set save directory\n");
+    printf("      --debug:1                  print debug information\n");
+    printf("      --enc:sjis                 use SJIS encoding for script\n");
+    printf("      --enc:gbk                  use GBK encoding for script (default)\n");
+    printf("      --enc:utf8                 use UTF-8 encoding for script\n\n");
+
+    printf(" Render options:\n");
+    printf("      --fullscreen               start in fullscreen mode\n");
+    printf("      --fullscreen2              start in fullscreen mode with stretch\n");
+    printf("      --window                   start in windowed mode\n");
+    printf("      --width <pixels>           force window width\n");
+    printf("      --height <pixels>          force window height\n");
+    printf("      --sharpness <value>        use GLES to sharpen image (e.g. 3.1)\n");
+    printf("      --no-video                 do not decode video\n");
+    printf("      --no-vsync                 disable vertical sync\n\n");
+
+    printf(" Other options:\n");
     printf("      --cdaudio                  use CD audio if available\n");
     printf("      --cdnumber <no>            choose the CD-ROM drive number\n");
-    printf("  -f, --font <file>              set a TTF font file\n");
     printf("      --registry <file>          set a registry file\n");
     printf("      --dll <file>               set a dll file\n");
-    printf("  -r, --root <path>              set the root path to the archives\n");
-    printf("      --fullscreen               start in fullscreen mode\n");
-    printf("      --window                   start in windowed mode\n");
     printf("      --force-button-shortcut    ignore useescspc and getenter command\n");
     printf("      --enable-wheeldown-advance advance the text on mouse wheel down\n");
     printf("      --disable-rescale          do not rescale the images in the archives\n");
     printf("      --render-font-outline      render outline instead of shadow\n");
     printf("      --edit                     enable volume/variable editing with 'z'\n");
     printf("      --key-exe <file>           set a file (*.EXE) with key table\n");
-    printf("      --enc:sjis                 use SJIS encoding for script\n");
-    printf("      --debug:1                  print debug information\n");
     printf("      --fontcache                cache default font\n");
-    printf("      --no-vsync                 disable vertical sync\n");
     printf("      --compatible               compatibility mode\n");
-    printf("      --save-dir <path>          set save directory\n");
     printf("  -h, --help                     show this help and exit\n");
     printf("  -v, --version                  show version information and exit\n");
     exit(0);
@@ -88,10 +101,12 @@ void showVersion()
     printf("NSC Version: %d.%02d\n\n", NSC_VERSION / 100, NSC_VERSION % 100);
     printf("Written by Ogapee <ogapee@aqua.dti2.ne.jp>\n");
     printf("Modified by jh10001 <jh10001@live.cn>\n");
+    printf("Enhanced by yurisizuku <https://github.com/YuriSizuku>\n");
     printf("Switch port by wetor <makisehoshimi@163.com>\n\n");
     printf("Copyright (c) 2001-2018 Ogapee.\n");
     printf("          (C) 2014-2019 jh10001\n");
-    printf("          (C) 2019-2025 wetor\n\n");
+    printf("          (C) 2022-2023 yurisizuku\n");
+    printf("          (C) 2019-2025 ONScripter-jh-Switch contributors\n\n");
     printf("This is free software; see the source for copying conditions.\n");
     printf("There is NO warranty; not even for MERCHANTABILITY or FITNESS\n");
     printf("FOR A PARTICULAR PURPOSE.\n");
@@ -121,12 +136,113 @@ void parseOptions(int argc, char* argv[])
 
         const char* opt = argv[0] + 1;
 
+        // Help and version
         if (matchOption(argv[0], "h", "-help")) {
             showHelp();
         }
         else if (matchOption(argv[0], "v", "-version")) {
             showVersion();
         }
+
+        // Load options
+        else if (matchOption(argv[0], "f", "-font")) {
+            if (argc < 2) {
+                utils::printError("Option --font requires an argument\n");
+                exit(1);
+            }
+            argc--;
+            argv++;
+            ons.setFontFile(argv[0]);
+        }
+        else if (matchOption(argv[0], "r", "-root")) {
+            if (argc < 2) {
+                utils::printError("Option --root requires an argument\n");
+                exit(1);
+            }
+            argc--;
+            argv++;
+            ons.setArchivePath(argv[0]);
+        }
+        else if (strcmp(opt, "-save-dir") == 0) {
+            if (argc < 2) {
+                utils::printError("Option --save-dir requires an argument\n");
+                exit(1);
+            }
+            argc--;
+            argv++;
+            ons.setSaveDir(argv[0]);
+        }
+        else if (strcmp(opt, "-debug:1") == 0) {
+            ons.setDebugLevel(1);
+            utils::setLogLevel(utils::LogLevel::DEBUG);
+        }
+        // Encoding options (from OnscripterYuri)
+        else if (strcmp(opt, "-enc:sjis") == 0) {
+            if (coding2utf16 == nullptr) {
+                coding2utf16 = new SJIS2UTF16();
+                utils::printInfo("Using SJIS encoding\n");
+            }
+        }
+        else if (strcmp(opt, "-enc:gbk") == 0) {
+            if (coding2utf16 == nullptr) {
+                coding2utf16 = new GBK2UTF16();
+                utils::printInfo("Using GBK encoding\n");
+            }
+        }
+        else if (strcmp(opt, "-enc:utf8") == 0) {
+            // UTF-8 mode: use GBK2UTF16 as base but enable force_utf8 flag
+            if (coding2utf16 == nullptr) {
+                coding2utf16 = new GBK2UTF16();
+            }
+            coding2utf16->force_utf8 = true;
+            utils::printInfo("Using UTF-8 encoding\n");
+        }
+
+        // Render options
+        else if (strcmp(opt, "-fullscreen") == 0) {
+            ons.setFullscreenMode(1);
+        }
+        else if (strcmp(opt, "-fullscreen2") == 0) {
+            ons.setFullscreenMode(2);
+        }
+        else if (strcmp(opt, "-window") == 0) {
+            ons.setWindowMode();
+        }
+        else if (strcmp(opt, "-width") == 0) {
+            if (argc < 2) {
+                utils::printError("Option --width requires an argument\n");
+                exit(1);
+            }
+            argc--;
+            argv++;
+            ons.setWindowWidth(atoi(argv[0]));
+        }
+        else if (strcmp(opt, "-height") == 0) {
+            if (argc < 2) {
+                utils::printError("Option --height requires an argument\n");
+                exit(1);
+            }
+            argc--;
+            argv++;
+            ons.setWindowHeight(atoi(argv[0]));
+        }
+        else if (strcmp(opt, "-sharpness") == 0) {
+            if (argc < 2) {
+                utils::printError("Option --sharpness requires an argument\n");
+                exit(1);
+            }
+            argc--;
+            argv++;
+            ons.setSharpness(atof(argv[0]));
+        }
+        else if (strcmp(opt, "-no-video") == 0) {
+            ons.setVideoOff();
+        }
+        else if (strcmp(opt, "-no-vsync") == 0) {
+            ons.setVsyncOff();
+        }
+
+        // Other options
         else if (strcmp(opt, "-cdaudio") == 0) {
             ons.enableCDAudio();
         }
@@ -138,15 +254,6 @@ void parseOptions(int argc, char* argv[])
             argc--;
             argv++;
             ons.setCDNumber(atoi(argv[0]));
-        }
-        else if (matchOption(argv[0], "f", "-font")) {
-            if (argc < 2) {
-                utils::printError("Option --font requires an argument\n");
-                exit(1);
-            }
-            argc--;
-            argv++;
-            ons.setFontFile(argv[0]);
         }
         else if (strcmp(opt, "-registry") == 0) {
             if (argc < 2) {
@@ -165,21 +272,6 @@ void parseOptions(int argc, char* argv[])
             argc--;
             argv++;
             ons.setDLLFile(argv[0]);
-        }
-        else if (matchOption(argv[0], "r", "-root")) {
-            if (argc < 2) {
-                utils::printError("Option --root requires an argument\n");
-                exit(1);
-            }
-            argc--;
-            argv++;
-            ons.setArchivePath(argv[0]);
-        }
-        else if (strcmp(opt, "-fullscreen") == 0) {
-            ons.setFullscreenMode();
-        }
-        else if (strcmp(opt, "-window") == 0) {
-            ons.setWindowMode();
         }
         else if (strcmp(opt, "-force-button-shortcut") == 0) {
             ons.enableButtonShortCut();
@@ -205,32 +297,11 @@ void parseOptions(int argc, char* argv[])
             argv++;
             ons.setKeyEXE(argv[0]);
         }
-        else if (strcmp(opt, "-enc:sjis") == 0) {
-            if (coding2utf16 == nullptr) {
-                coding2utf16 = new SJIS2UTF16();
-            }
-        }
-        else if (strcmp(opt, "-debug:1") == 0) {
-            ons.setDebugLevel(1);
-            utils::setLogLevel(utils::LogLevel::DEBUG);
-        }
         else if (strcmp(opt, "-fontcache") == 0) {
             ons.setFontCache();
         }
-        else if (strcmp(opt, "-no-vsync") == 0) {
-            ons.setVsyncOff();
-        }
         else if (strcmp(opt, "-compatible") == 0) {
             ons.setCompatibilityMode();
-        }
-        else if (strcmp(opt, "-save-dir") == 0) {
-            if (argc < 2) {
-                utils::printError("Option --save-dir requires an argument\n");
-                exit(1);
-            }
-            argc--;
-            argv++;
-            ons.setSaveDir(argv[0]);
         }
         else {
             utils::printWarning("Unknown option: %s\n", argv[0]);

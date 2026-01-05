@@ -1,5 +1,5 @@
 /* -*- C++ -*-
- * 
+ *
  *  ONScripter.h - Execution block parser of ONScripter
  *
  *  Copyright (c) 2001-2018 Ogapee. All rights reserved.
@@ -68,7 +68,7 @@ public:
     friend class DirectDraw;
     DirectDraw directDraw;
     typedef AnimationInfo::ONSBuf ONSBuf;
-    
+
     struct ButtonState{
         unsigned int event_type;
         unsigned int event_button;
@@ -76,7 +76,7 @@ public:
         char str[16];
         bool down_flag;
     };
-        
+
     ONScripter();
     ~ONScripter();
 
@@ -92,8 +92,12 @@ public:
     void setDLLFile(const char *filename);
     void setArchivePath(const char *path);
     void setSaveDir(const char *path);
-    void setFullscreenMode();
+    void setFullscreenMode(int mode = 0);  // 0=normal, 1=fullscreen, 2=fullscreen+stretch
     void setWindowMode();
+    void setWindowWidth(int width);   // Force window width (from OnscripterYuri)
+    void setWindowHeight(int height); // Force window height (from OnscripterYuri)
+    void setSharpness(float sharpness); // GLES sharpness rendering (from OnscripterYuri)
+    void setVideoOff();               // Disable video decoding (from OnscripterYuri)
     void setCompatibilityMode();
     void setVsyncOff();
     void setFontCache();
@@ -110,7 +114,7 @@ public:
     ButtonState &getCurrentButtonState(){return current_button_state;};
     int  getSkip(){return automode_flag?2:((skip_mode&SKIP_NORMAL)?1:0);};
     AnimationInfo *getSMPEGInfo(){return smpeg_info;};
-    
+
     int  openScript();
     int  init();
 
@@ -323,7 +327,7 @@ public:
 
     void stopSMPEG();
     void updateEffectDst();
-    
+
 private:
     // ----------------------------------------
     // global variables and methods
@@ -342,6 +346,7 @@ private:
     char *wm_icon_string;
     char wm_edit_string[256];
     bool fullscreen_mode;
+    bool stretch_mode;      // Fullscreen with stretch (from OnscripterYuri)
     bool window_mode;
 
     // start-up options
@@ -357,8 +362,14 @@ private:
     char *key_exe_file;
     bool compatibilityMode;
     bool vsync;
+    bool video_off;         // Disable video decoding (from OnscripterYuri)
     bool cacheFont;
     bool screen_dirty_flag;
+
+    // Force window dimensions (from OnscripterYuri)
+    int force_window_width;
+    int force_window_height;
+    float sharpness;        // GLES sharpness rendering (from OnscripterYuri)
 
     // variables relevant to button
     ButtonState current_button_state, last_mouse_state;
@@ -393,10 +404,10 @@ private:
     int  getmouseover_upper;
 
     // variables relevant to selection
-    enum { SELECT_GOTO_MODE  = 0, 
-           SELECT_GOSUB_MODE = 1, 
-           SELECT_NUM_MODE   = 2, 
-           SELECT_CSEL_MODE  = 3 
+    enum { SELECT_GOTO_MODE  = 0,
+           SELECT_GOSUB_MODE = 1,
+           SELECT_NUM_MODE   = 2,
+           SELECT_CSEL_MODE  = 3
     };
     struct SelectLink{
         SelectLink *next;
@@ -474,7 +485,7 @@ private:
     bool all_sprite_hide_flag;
     bool all_sprite2_hide_flag;
     bool show_dialog_flag;
-    
+
     int  calcDurationToNextAnimation();
     void proceedAnimation(int current_time);
     void setupAnimationInfo(AnimationInfo *anim, FontInfo *info=NULL);
@@ -497,7 +508,7 @@ private:
     bool doEffect( EffectLink *effect, bool clear_dirty_region=true );
     void drawEffect( SDL_Rect *dst_rect, SDL_Rect *src_rect, SDL_Surface *surface );
     void generateMosaic( SDL_Surface *src_surface, int level );
-    
+
     struct BreakupCell {
         int cell_x, cell_y;
         int dir;
@@ -536,7 +547,7 @@ private:
            EDIT_VOICE_VOLUME_MODE   = 5,
            EDIT_SE_VOLUME_MODE      = 6
     };
-    
+
     int  next_time;
     int  variable_edit_mode;
     int  variable_edit_index;
@@ -545,7 +556,7 @@ private:
     int  shift_pressed_status;
     int  ctrl_pressed_status;
     int  num_fingers; // numbur of fingers touching on the screen
-    
+
     void flushEventSub( SDL_Event &event );
     void flushEvent();
     void removeEvent(int type);
@@ -585,7 +596,7 @@ private:
 
     int  loadSaveFile2( int file_version );
     void saveSaveFile2( bool output_flag );
-    
+
     // ----------------------------------------
     // variables and methods relevant to image
     bool monocro_flag;
@@ -665,12 +676,12 @@ private:
     ButtonLink *shelter_button_link;
     SelectLink *shelter_select_link;
     ButtonState shelter_mouse_state;
-    
+
     void initMenuText();
     void enterSystemCall();
     void leaveSystemCall( bool restore_flag = true );
     int  executeSystemCall();
-    
+
     void executeSystemMenu();
     void executeSystemSkip();
     void executeSystemAutomode();
@@ -700,15 +711,15 @@ private:
     bool volume_on_flag; // false if mute
     SDL_AudioSpec audio_format;
     bool audio_open_flag;
-    
+
     bool wave_play_loop_flag;
     char *wave_file_name;
-    
+
     bool midi_play_loop_flag;
     char *midi_file_name;
     Mix_Music *midi_info;
 
-#ifdef USE_CDROM    
+#ifdef USE_CDROM
     SDL_CD *cdrom_info;
 #endif
     int current_cd_track;
@@ -727,7 +738,7 @@ private:
     char *fadeout_music_file_name;
     Mix_Music *music_info;
     char *loop_bgm_name[2];
-    
+
     Mix_Chunk *wave_sample[ONS_MIX_CHANNELS+ONS_MIX_EXTRA_CHANNELS];
 
     char *midi_cmd;
@@ -736,12 +747,12 @@ private:
     bool layer_smpeg_loop_flag;
     AnimationInfo *smpeg_info;
 
-    
+
     int playSound(const char *filename, int format, bool loop_flag, int channel=0);
     void playCDAudio();
     int playWave(Mix_Chunk *chunk, int format, bool loop_flag, int channel);
     int playMIDI(bool loop_flag);
-    
+
     int playMPEG(const char *filename, bool click_flag, bool loop_flag=false);
     int playAVI( const char *filename, bool click_flag );
     enum { WAVE_PLAY        = 0,
@@ -751,10 +762,10 @@ private:
     void stopBGM( bool continue_flag );
     void stopAllDWAVE();
     void playClickVoice();
-    
+
     // ----------------------------------------
     // variables and methods relevant to text
-    enum { DISPLAY_MODE_NORMAL  = 0, 
+    enum { DISPLAY_MODE_NORMAL  = 0,
            DISPLAY_MODE_TEXT    = 1
     };
     int  display_mode;
@@ -799,7 +810,7 @@ private:
     int  indent_offset;
 
     void setwindowCore();
-    
+
     void shiftHalfPixelX(SDL_Surface *surface);
     void shiftHalfPixelY(SDL_Surface *surface);
     void drawGlyph( SDL_Surface *dst_surface, FontInfo *info, SDL_Color &color, char *text, int xy[2], AnimationInfo *cache_info, SDL_Rect *clip, SDL_Rect &dst_rect );

@@ -4,7 +4,8 @@
  *
  *  Copyright (c) 2001-2018 Ogapee. All rights reserved.
  *            (C) 2014-2019 jh10001 <jh10001@live.cn>
- *            (C) 2019-2025 wetor <makisehoshimi@163.com>
+ *            (C) 2022-2023 yurisizuku <https://github.com/YuriSizuku>
+ *            (C) 2019-2025 ONScripter-jh-Switch contributors
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -31,6 +32,12 @@
 #include "Utils.h"
 #include "Common.h"
 #include "version.h"
+
+#include <string>
+
+// Global path variables for file-based logging (from OnscripterYuri)
+std::string g_stdoutpath = "sdmc:/onsemu/stdout.txt";
+std::string g_stderrpath = "sdmc:/onsemu/stderr.txt";
 
 // Global variables
 void *mouse_png = nullptr;

@@ -298,7 +298,12 @@ ONScripter::ONScripter()
 	edit_flag = false;
 	key_exe_file = NULL;
 	fullscreen_mode = false;
+	stretch_mode = false;
 	window_mode = false;
+	video_off = false;
+	force_window_width = 0;
+	force_window_height = 0;
+	sharpness = 0.0f;
 	sprite_info = new AnimationInfo[MAX_SPRITE_NUM];
 	sprite2_info = new AnimationInfo[MAX_SPRITE2_NUM];
 	texture_info = new AnimationInfo[MAX_TEXTURE_NUM];
@@ -369,14 +374,39 @@ void ONScripter::setSaveDir(const char *path)
 	script_h.setSaveDir(save_dir);
 }
 
-void ONScripter::setFullscreenMode()
+void ONScripter::setFullscreenMode(int mode)
 {
 	fullscreen_mode = true;
+	if (mode == 2) {
+		// Fullscreen with stretch mode (from OnscripterYuri)
+		stretch_mode = true;
+	}
 }
 
 void ONScripter::setWindowMode()
 {
 	window_mode = true;
+	fullscreen_mode = false;
+}
+
+void ONScripter::setWindowWidth(int width)
+{
+	force_window_width = width;
+}
+
+void ONScripter::setWindowHeight(int height)
+{
+	force_window_height = height;
+}
+
+void ONScripter::setSharpness(float value)
+{
+	sharpness = value;
+}
+
+void ONScripter::setVideoOff()
+{
+	video_off = true;
 }
 
 void ONScripter::setCompatibilityMode()

@@ -3,7 +3,8 @@
  *  Utils.h - Utility functions and logging system
  *
  *  Copyright (C) 2014 jh10001 <jh10001@live.cn>
- *            (C) 2019-2025 wetor <makisehoshimi@163.com>
+ *            (C) 2022-2023 yurisizuku <https://github.com/YuriSizuku>
+ *            (C) 2019-2025 ONScripter-jh-Switch contributors
  *
  *  This program is free software; you can redistribute it and/or modify
  *  it under the terms of the GNU General Public License as published by
@@ -27,6 +28,8 @@
 #include <stdarg.h>
 #include <string.h>
 #include <time.h>
+#include <utility>
+#include <string>
 
 #ifdef ANDROID
 #include <android/log.h>
@@ -35,6 +38,10 @@
 #ifdef WINRT
 #include <windows.h>
 #endif
+
+// Global paths for file-based logging (from OnscripterYuri)
+extern std::string g_stdoutpath;
+extern std::string g_stderrpath;
 
 namespace utils {
 
@@ -222,6 +229,24 @@ inline const char* getFileExtension(const char* filename) {
     if (!dot || dot == filename) return "";
     return dot;
 }
+
+// Auto cast utility (from OnscripterYuri)
+// Allows implicit conversion between types with explicit cast semantics
+template <typename From>
+class auto_cast {
+public:
+    explicit constexpr auto_cast(From const& t) noexcept
+        : val { t }
+    {}
+
+    template <typename To>
+    constexpr operator To() const noexcept(noexcept(static_cast<To>(std::declval<From>()))) {
+        return static_cast<To>(val);
+    }
+
+private:
+    From const& val;
+};
 
 } // namespace utils
 
