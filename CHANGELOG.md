@@ -5,6 +5,39 @@ All notable changes to ONScripter-jh for Nintendo Switch will be documented in t
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [2.3.0] - 2025-01-06
+
+### Added - GLES Renderer (CAS Sharpening)
+
+- **GLES renderer with CAS (Contrast Adaptive Sharpening)** from OnscripterYuri
+  - GPU-accelerated image sharpening for better visual quality when upscaling
+  - Based on AMD FidelityFX CAS algorithm
+  - Configurable via `--sharpness <0.0-1.0>` command line option
+  - Automatic fallback to standard SDL rendering when sharpness is not set
+- New source files:
+  - `source/renderer/gles_renderer.h` - GLES renderer class header
+  - `source/renderer/gles_renderer.cpp` - GLES renderer implementation
+  - `source/renderer/gles2funcs.h` - GLES2 function declarations for dynamic binding
+  - `source/renderer/shader/post_cas.h` - CAS fragment shader (GLSL ES 3.0)
+- `USE_GLES` compile flag for enabling GLES renderer
+- `GlesRenderer` class with pause/resume support for lifecycle management
+- `render_view_rect` member for proper scaling calculations
+
+### Changed
+
+- Updated Makefile to include `source/renderer` in SOURCES directories
+- ONScripter.h now includes GLES renderer forward declaration when USE_GLES is defined
+- `calcRenderRect()` now updates GLES renderer constants when render rect changes
+- `flushDirect()` uses GLES CAS renderer when sharpness is enabled
+- `sharpness` member variable now uses NAN as default (unset state)
+
+### Technical
+
+- GLES 2.0/3.0 compatible shader implementation
+- Nintendo Switch uses OpenGL ES via mesa/nouveau drivers
+- Vertex buffer objects for efficient fullscreen quad rendering
+- Dynamic GL function binding for desktop platform compatibility
+
 ## [2.2.0] - 2025-01-15
 
 ### Added - OnscripterYuri Feature Merge
@@ -133,6 +166,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 | Version | Date       | Highlights                                         |
 | ------- | ---------- | -------------------------------------------------- |
+| 2.3.0   | 2025-01-06 | GLES renderer with CAS sharpening                  |
 | 2.2.0   | 2025-01-15 | OnscripterYuri merge: UTF-8, resolution, sharpness |
 | 2.1.0   | 2025-01-15 | C++17, improved logging, modernized codebase       |
 | 2.0.0   | 2021-07-05 | English support, FW 12.0+ compatibility            |
