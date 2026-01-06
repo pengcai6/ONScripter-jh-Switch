@@ -18,6 +18,11 @@
 #include "test_lua_animation.cpp"
 #include "test_coordinates.cpp"
 #include "test_rendering.cpp"
+#include "test_dirty_rect.cpp"
+#include "test_image_processing.cpp"
+#include "test_animation_info.cpp"
+#include "test_font_layout.cpp"
+#include "test_utf_conversion.cpp"
 
 int main(int argc, char* argv[]) {
     printf("ONScripter-jh-Switch Unit Tests\n");
